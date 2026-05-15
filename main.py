@@ -519,69 +519,62 @@ https://t.me/{REQUIRED_CHANNEL}
     # TEXT ME LATER
     # =================================
 
-    if "text me in" in text:
+if "text me in" in text:
 
-        try:
+    numbers = ''.join(
+        [c for c in text if c.isdigit()]
+    )
 
-            mins = int(
-                text.split("in")[1]
-                .replace("minutes", "")
-                .replace("minute", "")
-                .replace("mins", "")
-                .replace("min", "")
-                .strip()
-            )
+    if numbers:
 
-            if random.randint(1, 100) <= 25:
+        mins = int(numbers)
 
-                bot.reply_to(
-                    message,
-                    random.choice([
-                        "maybe 😭",
-                        "i might forget honestly",
-                        "depends",
-                        "we'll see"
-                    ])
-                )
-
-                return
-
-            send_time = int(time.time()) + (mins * 60)
-
-            future_message = random.choice([
-                "heyy 😭",
-                "still alive?",
-                "soo what are you doing now",
-                "i remembered somehow",
-                "you disappeared"
-            ])
-
-            cursor.execute(
-                """
-                INSERT INTO scheduled_messages
-                (user_id, chat_id, message, send_time)
-                VALUES (?, ?, ?, ?)
-                """,
-                (
-                    user_id,
-                    chat_id,
-                    future_message,
-                    send_time
-                )
-            )
-
-            conn.commit()
+        if random.randint(1, 100) <= 25:
 
             bot.reply_to(
                 message,
-                f"okay i'll text you in {mins} mins"
+                random.choice([
+                    "maybe 😭",
+                    "i might forget honestly",
+                    "depends",
+                    "we'll see"
+                ])
             )
 
             return
 
-        except:
+        send_time = int(time.time()) + (mins * 60)
 
-            pass
+        future_message = random.choice([
+            "heyy 😭",
+            "still awake?",
+            "what are you doing now",
+            "i remembered lol",
+            "you disappeared on me"
+        ])
+
+        cursor.execute(
+            """
+            INSERT INTO scheduled_messages
+            (user_id, chat_id, message, send_time)
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                user_id,
+                chat_id,
+                future_message,
+                send_time
+            )
+        )
+
+        conn.commit()
+
+        bot.reply_to(
+            message,
+            f"okay i'll text you in {mins} minute"
+        )
+
+        return
 
     # =================================
     # RELATIONSHIP SYSTEM
