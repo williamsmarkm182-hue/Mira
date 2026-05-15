@@ -17,7 +17,6 @@ GROQ_API_KEY = "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"
 # =====================================
 
 ADMIN_ID = 7939923484
-
 REQUIRED_CHANNEL = "starkreport"
 
 # =====================================
@@ -102,7 +101,6 @@ def joined_required_channel(user_id):
     except Exception as e:
 
         print(e)
-
         return False
 
 # =====================================
@@ -112,10 +110,7 @@ def joined_required_channel(user_id):
 def create_user(user_id):
 
     cursor.execute(
-        """
-        SELECT * FROM users
-        WHERE user_id=?
-        """,
+        "SELECT * FROM users WHERE user_id=?",
         (user_id,)
     )
 
@@ -147,10 +142,7 @@ def create_user(user_id):
 def get_user(user_id):
 
     cursor.execute(
-        """
-        SELECT * FROM users
-        WHERE user_id=?
-        """,
+        "SELECT * FROM users WHERE user_id=?",
         (user_id,)
     )
 
@@ -167,7 +159,6 @@ def get_nickname(user_id):
     nickname = user[3]
 
     if nickname and nickname != "":
-
         return nickname
 
     names = [
@@ -263,15 +254,14 @@ def get_stable_mood(user_id):
         "playful",
         "curious",
         "thoughtful",
-        "sleepy"
+        "sleepy",
+        "jealous",
+        "clingy",
+        "dry"
     ]
 
     cursor.execute(
-        """
-        SELECT mood
-        FROM users
-        WHERE user_id=?
-        """,
+        "SELECT mood FROM users WHERE user_id=?",
         (user_id,)
     )
 
@@ -318,6 +308,16 @@ def get_stable_mood(user_id):
         conn.commit()
 
     return current_mood
+
+# =====================================
+# SLEEP SYSTEM
+# =====================================
+
+def is_sleeping():
+
+    current_hour = time.localtime().tm_hour
+
+    return current_hour >= 1 and current_hour <= 8
 
 # =====================================
 # GROQ AI
@@ -426,7 +426,8 @@ Keep replies short and human.
     response = requests.post(
         "https://api.groq.com/openai/v1/chat/completions",
         headers=headers,
-        json=data
+        json=data,
+        timeout=30
     )
 
     result = response.json()
@@ -434,7 +435,13 @@ Keep replies short and human.
     print(result)
 
     if "choices" not in result:
-        return "my brain lagged 😭"
+
+        return random.choice([
+            "my brain lagged 😭",
+            "wait what",
+            "bro i forgot what i was saying",
+            "i'm actually tired rn"
+        ])
 
     return result["choices"][0]["message"]["content"]
 
@@ -447,10 +454,7 @@ def scheduler_loop():
     while True:
 
         cursor.execute(
-            """
-            SELECT user_id
-            FROM users
-            """
+            "SELECT user_id FROM users"
         )
 
         users = cursor.fetchall()
@@ -471,7 +475,7 @@ def scheduler_loop():
 
                 # GOOD MORNING
 
-                if hour == 8 and random.randint(1, 1000) <= 5:
+                if hour == 8 and random.randint(1, 2000) <= 2:
 
                     bot.send_message(
                         uid,
@@ -485,7 +489,7 @@ def scheduler_loop():
 
                 # GOOD NIGHT
 
-                if hour == 23 and random.randint(1, 1000) <= 5:
+                if hour == 23 and random.randint(1, 2000) <= 2:
 
                     bot.send_message(
                         uid,
@@ -521,30 +525,17 @@ def scheduler_loop():
                         f"i had something to tell you 😭",
                         f"you better not be flirting with someone else",
                         f"lowkey jealous rn",
-                        f"i'm bored come talk to me",
-                        f"goodnight dummy 😭",
-                        f"good morning sleepyhead"
+                        f"i'm bored come talk to me"
                     ]
 
                     if relationship_level >= 5:
-
-                        msg = random.choice(
-                            relationship_texts
-                        )
-
+                        msg = random.choice(relationship_texts)
                     else:
+                        msg = random.choice(normal_texts)
 
-                        msg = random.choice(
-                            normal_texts
-                        )
-
-                    bot.send_message(
-                        uid,
-                        msg
-                    )
+                    bot.send_message(uid, msg)
 
             except Exception as e:
-
                 print(e)
 
         # SCHEDULED MESSAGES
@@ -576,7 +567,6 @@ def scheduler_loop():
                 )
 
             except Exception as e:
-
                 print(e)
 
             cursor.execute(
@@ -628,23 +618,13 @@ https://t.me/{REQUIRED_CHANNEL}
 def admin_panel(message):
 
     if message.from_user.id != ADMIN_ID:
-
         return
 
-    cursor.execute(
-        """
-        SELECT COUNT(*)
-        FROM users
-        """
-    )
-
+    cursor.execute("SELECT COUNT(*) FROM users")
     total_users = cursor.fetchone()[0]
 
     cursor.execute(
-        """
-        SELECT COUNT(DISTINCT user_id)
-        FROM chats
-        """
+        "SELECT COUNT(DISTINCT user_id) FROM chats"
     )
 
     active_users = cursor.fetchone()[0]
@@ -657,10 +637,7 @@ def admin_panel(message):
 🔥 Active Users: {active_users}
 """
 
-    bot.reply_to(
-        message,
-        text
-    )
+    bot.reply_to(message, text)
 
 # =====================================
 # CHAT SYSTEM
@@ -806,21 +783,23 @@ https://t.me/{REQUIRED_CHANNEL}
 
     if any(word in text for word in positive_words):
 
-        relationship_level += 1
+        if relationship_level < 10:
 
-        cursor.execute(
-            """
-            UPDATE users
-            SET relationship_level=?
-            WHERE user_id=?
-            """,
-            (
-                relationship_level,
-                user_id
+            relationship_level += 1
+
+            cursor.execute(
+                """
+                UPDATE users
+                SET relationship_level=?
+                WHERE user_id=?
+                """,
+                (
+                    relationship_level,
+                    user_id
+                )
             )
-        )
 
-        conn.commit()
+            conn.commit()
 
     # =================================
     # NORMAL CHAT
@@ -828,14 +807,48 @@ https://t.me/{REQUIRED_CHANNEL}
 
     mood = get_stable_mood(user_id)
 
+    # =================================
+    # SLEEP MODE
+    # =================================
+
+    if is_sleeping():
+
+        sleepy_replies = [
+            "i should literally be sleeping rn 😭",
+            "bro why are you awake",
+            "i'm half asleep",
+            "my eyes hurt 😭",
+            "goodnight dummy",
+            "zzz"
+        ]
+
+        if random.randint(1, 100) <= 20:
+            return
+
+        if random.randint(1, 100) <= 35:
+
+            bot.send_chat_action(
+                message.chat.id,
+                "typing"
+            )
+
+            time.sleep(random.randint(4, 8))
+
+            bot.reply_to(
+                message,
+                random.choice(sleepy_replies)
+            )
+
+            return
+
     bot.send_chat_action(
         message.chat.id,
         "typing"
     )
 
-    typing_time = random.randint(1, 5)
+    typing_time = random.uniform(1.2, 4.8)
 
-    time.sleep(typing_time)
+    time.sleep(round(typing_time, 1))
 
     try:
 
