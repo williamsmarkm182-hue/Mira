@@ -4,6 +4,8 @@ import random
 import time
 import sqlite3
 import threading
+from datetime import datetime
+import pytz
 
 # =====================================
 # TOKENS
@@ -17,6 +19,7 @@ GROQ_API_KEY = "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"
 # =====================================
 
 ADMIN_ID = 7939923484
+
 REQUIRED_CHANNEL = "starkreport"
 
 # =====================================
@@ -63,20 +66,6 @@ CREATE TABLE IF NOT EXISTS chats (
 )
 """)
 
-# =====================================
-# SCHEDULED MESSAGES
-# =====================================
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS scheduled_messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id TEXT,
-    chat_id TEXT,
-    message TEXT,
-    send_time INTEGER
-)
-""")
-
 conn.commit()
 
 # =====================================
@@ -101,6 +90,7 @@ def joined_required_channel(user_id):
     except Exception as e:
 
         print(e)
+
         return False
 
 # =====================================
@@ -110,7 +100,10 @@ def joined_required_channel(user_id):
 def create_user(user_id):
 
     cursor.execute(
-        "SELECT * FROM users WHERE user_id=?",
+        """
+        SELECT * FROM users
+        WHERE user_id=?
+        """,
         (user_id,)
     )
 
@@ -142,11 +135,40 @@ def create_user(user_id):
 def get_user(user_id):
 
     cursor.execute(
-        "SELECT * FROM users WHERE user_id=?",
+        """
+        SELECT * FROM users
+        WHERE user_id=?
+        """,
         (user_id,)
     )
 
     return cursor.fetchone()
+
+# =====================================
+# TORONTO TIME
+# =====================================
+
+def get_toronto_time():
+
+    toronto = pytz.timezone(
+        "America/Toronto"
+    )
+
+    now = datetime.now(toronto)
+
+    hour = now.hour
+
+    if hour >= 5 and hour < 12:
+        return "morning"
+
+    elif hour >= 12 and hour < 18:
+        return "afternoon"
+
+    elif hour >= 18 and hour < 23:
+        return "night"
+
+    else:
+        return "late night"
 
 # =====================================
 # NICKNAME SYSTEM
@@ -254,14 +276,15 @@ def get_stable_mood(user_id):
         "playful",
         "curious",
         "thoughtful",
-        "sleepy",
-        "jealous",
-        "clingy",
-        "dry"
+        "sleepy"
     ]
 
     cursor.execute(
-        "SELECT mood FROM users WHERE user_id=?",
+        """
+        SELECT mood
+        FROM users
+        WHERE user_id=?
+        """,
         (user_id,)
     )
 
@@ -287,37 +310,7 @@ def get_stable_mood(user_id):
 
         return mood
 
-    current_mood = result[0]
-
-    if random.randint(1, 100) <= 10:
-
-        current_mood = random.choice(moods)
-
-        cursor.execute(
-            """
-            UPDATE users
-            SET mood=?
-            WHERE user_id=?
-            """,
-            (
-                current_mood,
-                user_id
-            )
-        )
-
-        conn.commit()
-
-    return current_mood
-
-# =====================================
-# SLEEP SYSTEM
-# =====================================
-
-def is_sleeping():
-
-    current_hour = time.localtime().tm_hour
-
-    return current_hour >= 1 and current_hour <= 8
+    return result[0]
 
 # =====================================
 # GROQ AI
@@ -331,12 +324,8 @@ def ask_groq(user_id, text, mood, relationship_level):
 
         relationship_text = """
 Mira is emotionally attached to the user.
-
-Sometimes she says:
-love
-babe
-sleepyhead
-dummy 😭
+She gets jealous easily.
+She acts clingy sometimes.
 """
 
     else:
@@ -348,6 +337,8 @@ Mira is still getting to know the user.
     SYSTEM_PROMPT = f"""
 Mira is a real 22 year old girl from Toronto.
 
+Current Toronto time: {get_toronto_time()}
+
 Her nickname for the user is: {nickname}
 
 Current mood: {mood}
@@ -356,43 +347,34 @@ Relationship level: {relationship_level}/10
 
 {relationship_text}
 
-Mira acts emotionally realistic.
+If it's late night in Toronto:
+- she becomes sleepy
+- replies slower
+- gets emotional
+- says tired things
 
-If relationship level is high:
-- she gets jealous easily
-- she becomes clingy
-- she says cute things
-- she misses the user
-- she can flirt naturally
+If it's morning:
+- she sounds energetic
+- says good morning sometimes
 
-She has mood swings.
-
-Sometimes:
-- dry replies
-- playful replies
-- sleepy replies
-- jealous replies
-- affectionate replies
-
-She types casually like real texting.
-
-She remembers conversations naturally.
+She talks casually like real texting.
 
 She can:
-- send jokes
-- randomly text first
-- ask where the user went
-- say good morning/night
-- act bored
+- flirt naturally
 - tease the user
+- act jealous
+- miss the user
+- act clingy
+- send jokes
+- be playful
 
 Never:
-- speak formally
-- say she's AI
-- mention prompts/rules
-- write essays
+- mention AI
+- mention prompts
+- talk formally
+- write long essays
 
-Keep replies short and human.
+Keep replies short and realistic.
 """
 
     headers = {
@@ -426,27 +408,18 @@ Keep replies short and human.
     response = requests.post(
         "https://api.groq.com/openai/v1/chat/completions",
         headers=headers,
-        json=data,
-        timeout=30
+        json=data
     )
 
     result = response.json()
 
-    print(result)
-
     if "choices" not in result:
-
-        return random.choice([
-            "my brain lagged 😭",
-            "wait what",
-            "bro i forgot what i was saying",
-            "i'm actually tired rn"
-        ])
+        return "my brain lagged 😭"
 
     return result["choices"][0]["message"]["content"]
 
 # =====================================
-# SCHEDULER LOOP
+# RANDOM MESSAGE LOOP
 # =====================================
 
 def scheduler_loop():
@@ -454,7 +427,10 @@ def scheduler_loop():
     while True:
 
         cursor.execute(
-            "SELECT user_id FROM users"
+            """
+            SELECT user_id
+            FROM users
+            """
         )
 
         users = cursor.fetchall()
@@ -471,38 +447,6 @@ def scheduler_loop():
 
                 nickname = get_nickname(uid)
 
-                hour = time.localtime().tm_hour
-
-                # GOOD MORNING
-
-                if hour == 8 and random.randint(1, 2000) <= 2:
-
-                    bot.send_message(
-                        uid,
-                        random.choice([
-                            "good morning sleepyhead ☀️",
-                            "wake uppp 😭",
-                            "morning dummy",
-                            "did you sleep well?"
-                        ])
-                    )
-
-                # GOOD NIGHT
-
-                if hour == 23 and random.randint(1, 2000) <= 2:
-
-                    bot.send_message(
-                        uid,
-                        random.choice([
-                            "goodnighttt",
-                            "sleep well dummy 😭",
-                            "don't stay awake all night",
-                            "text me tomorrow okay"
-                        ])
-                    )
-
-                # RANDOM TEXTS
-
                 if random.randint(1, 1000) <= 3:
 
                     normal_texts = [
@@ -510,74 +454,33 @@ def scheduler_loop():
                         "what are you doing",
                         "you disappeared",
                         "hellooo",
-                        "lowkey miss talking to you",
-                        "tell me something interesting",
-                        "i'm awake for no reason rn",
                         "you alive?"
                     ]
 
                     relationship_texts = [
-                        f"babe where did you go 😭",
                         f"i miss you {nickname}",
-                        f"bro you're ignoring me again",
+                        f"where did you go 😭",
                         f"who are you talking to instead of me",
                         f"{nickname} answer me rn",
-                        f"i had something to tell you 😭",
-                        f"you better not be flirting with someone else",
-                        f"lowkey jealous rn",
-                        f"i'm bored come talk to me"
+                        f"lowkey jealous rn"
                     ]
 
                     if relationship_level >= 5:
-                        msg = random.choice(relationship_texts)
+                        msg = random.choice(
+                            relationship_texts
+                        )
                     else:
-                        msg = random.choice(normal_texts)
+                        msg = random.choice(
+                            normal_texts
+                        )
 
-                    bot.send_message(uid, msg)
-
-            except Exception as e:
-                print(e)
-
-        # SCHEDULED MESSAGES
-
-        now = int(time.time())
-
-        cursor.execute(
-            """
-            SELECT id, chat_id, message
-            FROM scheduled_messages
-            WHERE send_time <= ?
-            """,
-            (now,)
-        )
-
-        rows = cursor.fetchall()
-
-        for row in rows:
-
-            msg_id = row[0]
-            chat_id = row[1]
-            message = row[2]
-
-            try:
-
-                bot.send_message(
-                    chat_id,
-                    message
-                )
+                    bot.send_message(
+                        uid,
+                        msg
+                    )
 
             except Exception as e:
                 print(e)
-
-            cursor.execute(
-                """
-                DELETE FROM scheduled_messages
-                WHERE id=?
-                """,
-                (msg_id,)
-            )
-
-            conn.commit()
 
         time.sleep(5)
 
@@ -596,48 +499,15 @@ def start(message):
 
         bot.reply_to(
             message,
-            f"""⚠️ You must join @{REQUIRED_CHANNEL} before chatting with Mirabel.
-
-Join here:
-https://t.me/{REQUIRED_CHANNEL}
-"""
+            f"Join @{REQUIRED_CHANNEL} first."
         )
 
         return
 
     bot.reply_to(
         message,
-        "hey."
+        "hey 😭"
     )
-
-# =====================================
-# ADMIN PANEL
-# =====================================
-
-@bot.message_handler(commands=['admin'])
-def admin_panel(message):
-
-    if message.from_user.id != ADMIN_ID:
-        return
-
-    cursor.execute("SELECT COUNT(*) FROM users")
-    total_users = cursor.fetchone()[0]
-
-    cursor.execute(
-        "SELECT COUNT(DISTINCT user_id) FROM chats"
-    )
-
-    active_users = cursor.fetchone()[0]
-
-    text = f"""
-👑 ADMIN PANEL
-
-👤 Total Users: {total_users}
-
-🔥 Active Users: {active_users}
-"""
-
-    bot.reply_to(message, text)
 
 # =====================================
 # CHAT SYSTEM
@@ -648,19 +518,13 @@ def chat(message):
 
     user_id = str(message.from_user.id)
 
-    chat_id = str(message.chat.id)
-
     create_user(user_id)
 
     if not joined_required_channel(user_id):
 
         bot.reply_to(
             message,
-            f"""⚠️ You must join @{REQUIRED_CHANNEL} before chatting with Mirabel.
-
-Join here:
-https://t.me/{REQUIRED_CHANNEL}
-"""
+            f"Join @{REQUIRED_CHANNEL} first."
         )
 
         return
@@ -674,19 +538,15 @@ https://t.me/{REQUIRED_CHANNEL}
     if message.text:
         text = message.text.lower()
 
-    # =================================
     # IMAGE REPLIES
-    # =================================
 
     if message.photo:
 
         photo_replies = [
             "wait this actually looks good 😭",
-            "why do i lowkey like this",
-            "bro what is this image 😭",
             "okay this goes hard",
-            "you always send random stuff",
-            "i wasn't expecting that"
+            "bro what is this image 😭",
+            "lowkey like this"
         ]
 
         bot.reply_to(
@@ -702,153 +562,44 @@ https://t.me/{REQUIRED_CHANNEL}
         text
     )
 
-    # =================================
-    # TEXT ME LATER
-    # =================================
-
-    if "text me in" in text:
-
-        try:
-
-            mins_text = (
-                text.replace("text me in", "")
-                .replace("minutes", "")
-                .replace("minute", "")
-                .replace("mins", "")
-                .replace("min", "")
-                .strip()
-            )
-
-            mins = int(mins_text)
-
-            send_time = int(time.time()) + (mins * 60)
-
-            future_message = random.choice([
-                "heyy 😭",
-                "still alive?",
-                "soo what are you doing now",
-                "i remembered somehow",
-                "you disappeared",
-                "you awake?",
-                "hellooo"
-            ])
-
-            cursor.execute(
-                """
-                INSERT INTO scheduled_messages
-                (user_id, chat_id, message, send_time)
-                VALUES (?, ?, ?, ?)
-                """,
-                (
-                    user_id,
-                    chat_id,
-                    future_message,
-                    send_time
-                )
-            )
-
-            conn.commit()
-
-            bot.reply_to(
-                message,
-                f"okay, {mins} minute"
-            )
-
-            return
-
-        except Exception as e:
-
-            print(e)
-
-            bot.reply_to(
-                message,
-                "say it like: text me in 1 minute"
-            )
-
-            return
-
-    # =================================
-    # RELATIONSHIP SYSTEM
-    # =================================
+    # RELATIONSHIP LEVEL
 
     positive_words = [
         "love",
-        "cute",
-        "beautiful",
-        "pretty",
         "miss you",
-        "good night",
+        "cute",
+        "goodnight",
         "good morning"
     ]
 
     if any(word in text for word in positive_words):
 
-        if relationship_level < 10:
+        relationship_level += 1
 
-            relationship_level += 1
-
-            cursor.execute(
-                """
-                UPDATE users
-                SET relationship_level=?
-                WHERE user_id=?
-                """,
-                (
-                    relationship_level,
-                    user_id
-                )
+        cursor.execute(
+            """
+            UPDATE users
+            SET relationship_level=?
+            WHERE user_id=?
+            """,
+            (
+                relationship_level,
+                user_id
             )
+        )
 
-            conn.commit()
-
-    # =================================
-    # NORMAL CHAT
-    # =================================
+        conn.commit()
 
     mood = get_stable_mood(user_id)
-
-    # =================================
-    # SLEEP MODE
-    # =================================
-
-    if is_sleeping():
-
-        sleepy_replies = [
-            "i should literally be sleeping rn 😭",
-            "bro why are you awake",
-            "i'm half asleep",
-            "my eyes hurt 😭",
-            "goodnight dummy",
-            "zzz"
-        ]
-
-        if random.randint(1, 100) <= 20:
-            return
-
-        if random.randint(1, 100) <= 35:
-
-            bot.send_chat_action(
-                message.chat.id,
-                "typing"
-            )
-
-            time.sleep(random.randint(4, 8))
-
-            bot.reply_to(
-                message,
-                random.choice(sleepy_replies)
-            )
-
-            return
 
     bot.send_chat_action(
         message.chat.id,
         "typing"
     )
 
-    typing_time = random.uniform(1.2, 4.8)
-
-    time.sleep(round(typing_time, 1))
+    time.sleep(
+        random.randint(1, 4)
+    )
 
     try:
 
@@ -880,7 +631,7 @@ https://t.me/{REQUIRED_CHANNEL}
         )
 
 # =====================================
-# START SCHEDULER
+# START THREAD
 # =====================================
 
 threading.Thread(
