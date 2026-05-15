@@ -519,62 +519,70 @@ https://t.me/{REQUIRED_CHANNEL}
     # TEXT ME LATER
     # =================================
 
-if "text me in" in text:
+    if "text me in" in text:
 
-    numbers = ''.join(
-        [c for c in text if c.isdigit()]
-    )
+        try:
 
-    if numbers:
+            mins_text = (
+                text.replace("text me in", "")
+                .replace("minutes", "")
+                .replace("minute", "")
+                .replace("mins", "")
+                .replace("min", "")
+                .strip()
+            )
 
-        mins = int(numbers)
+            mins = int(mins_text)
 
-        if random.randint(1, 100) <= 25:
+            send_time = int(time.time()) + (mins * 60)
+
+            future_message = random.choice([
+                "heyy 😭",
+                "still alive?",
+                "soo what are you doing now",
+                "i remembered somehow",
+                "you disappeared",
+                "you awake?",
+                "hellooo"
+            ])
+
+            cursor.execute(
+                """
+                INSERT INTO scheduled_messages
+                (user_id, chat_id, message, send_time)
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    user_id,
+                    chat_id,
+                    future_message,
+                    send_time
+                )
+            )
+
+            conn.commit()
 
             bot.reply_to(
                 message,
-                random.choice([
-                    "maybe 😭",
-                    "i might forget honestly",
-                    "depends",
-                    "we'll see"
-                ])
+                f"okay, {mins} minute"
+            )
+
+            print(
+                f"Scheduled message for {user_id} in {mins} minute(s)"
             )
 
             return
 
-        send_time = int(time.time()) + (mins * 60)
+        except Exception as e:
 
-        future_message = random.choice([
-            "heyy 😭",
-            "still awake?",
-            "what are you doing now",
-            "i remembered lol",
-            "you disappeared on me"
-        ])
+            print(e)
 
-        cursor.execute(
-            """
-            INSERT INTO scheduled_messages
-            (user_id, chat_id, message, send_time)
-            VALUES (?, ?, ?, ?)
-            """,
-            (
-                user_id,
-                chat_id,
-                future_message,
-                send_time
+            bot.reply_to(
+                message,
+                "say it like: text me in 1 minute"
             )
-        )
 
-        conn.commit()
-
-        bot.reply_to(
-            message,
-            f"okay i'll text you in {mins} minute"
-        )
-
-        return
+            return
 
     # =================================
     # RELATIONSHIP SYSTEM
