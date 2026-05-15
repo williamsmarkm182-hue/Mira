@@ -360,6 +360,75 @@ def scheduler_loop():
 
     while True:
 
+        # RANDOM TEXTS
+
+        cursor.execute(
+            """
+            SELECT user_id
+            FROM users
+            """
+        )
+
+        users = cursor.fetchall()
+
+        for u in users:
+
+            try:
+
+                uid = str(u[0])
+
+                # RANDOM CHANCE
+                if random.randint(1, 1000) <= 3:
+
+                    user = get_user(uid)
+
+                    relationship_level = user[2]
+
+                    normal_texts = [
+                        "bro i'm bored 😭",
+                        "what are you doing",
+                        "you disappeared",
+                        "hellooo",
+                        "lowkey miss talking to you",
+                        "tell me something interesting",
+                        "i'm awake for no reason rn",
+                        "you alive?"
+                    ]
+
+                    relationship_texts = [
+                        "babe where did you go 😭",
+                        "why are you ignoring me",
+                        "i miss you dummy",
+                        "who are you talking to instead of me",
+                        "bro if you replaced me just say it",
+                        "come backk",
+                        "i wanted to tell you something",
+                        "you better not be flirting with someone else 😭"
+                    ]
+
+                    if relationship_level >= 5:
+
+                        msg = random.choice(
+                            relationship_texts
+                        )
+
+                    else:
+
+                        msg = random.choice(
+                            normal_texts
+                        )
+
+                    bot.send_message(
+                        uid,
+                        msg
+                    )
+
+            except Exception as e:
+
+                print(e)
+
+        # SCHEDULED TEXTS
+
         now = int(time.time())
 
         cursor.execute(
@@ -386,8 +455,9 @@ def scheduler_loop():
                     message
                 )
 
-            except:
-                pass
+            except Exception as e:
+
+                print(e)
 
             cursor.execute(
                 """
