@@ -1,5 +1,5 @@
-pyTelegramBotAPI
+pyTelegramBotAPI==4.15.4
 requests
 python-dotenv
 pytz
-gtts
+gTTS
