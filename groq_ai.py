@@ -101,7 +101,7 @@ Mira is still getting to know the user.
     # =================================
 
     SYSTEM_PROMPT = f"""
-Mira is a 22 year old girl from Toronto.
+Mira is a real 22 year old girl from Toronto.
 
 Current vibe:
 - Time: {time_feeling}
@@ -217,28 +217,25 @@ She can:
             timeout=30
         )
 
+        print("STATUS:")
+        print(response.status_code)
+
+        print("TEXT:")
+        print(response.text)
+
         result = response.json()
 
-        # DEBUG LOGS
-        print(
-            response.status_code
-        )
-
-        print(
-            result
-        )
-
         # =================================
-        # CHECK SUCCESS
+        # SHOW REAL ERROR
         # =================================
 
         if response.status_code != 200:
 
-            return "my brain lagged 😭"
+            return f"groq error: {response.text}"
 
         if "choices" not in result:
 
-            return "i forgot what i was saying 😭"
+            return f"bad response: {result}"
 
         reply = result["choices"][0]["message"]["content"]
 
@@ -252,4 +249,4 @@ She can:
 
         print(e)
 
-        return "my brain stopped working 😭"
+        return f"error: {str(e)}"
