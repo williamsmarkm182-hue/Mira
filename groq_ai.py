@@ -188,7 +188,7 @@ She can:
     data = {
 
         "model":
-        "llama3-8b-8192",
+        "llama-3.1-8b-instant",
 
         "messages":
         messages,
@@ -217,25 +217,24 @@ She can:
             timeout=30
         )
 
-        print("STATUS:")
-        print(response.status_code)
-
-        print("TEXT:")
-        print(response.text)
-
         result = response.json()
 
+        print(result)
+
         # =================================
-        # SHOW REAL ERROR
+        # ERROR CHECK
         # =================================
 
         if response.status_code != 200:
 
-            return f"groq error: {response.text}"
+            print("GROQ ERROR:")
+            print(response.text)
+
+            return "my brain lagged 😭"
 
         if "choices" not in result:
 
-            return f"bad response: {result}"
+            return "i forgot what i was saying 😭"
 
         reply = result["choices"][0]["message"]["content"]
 
@@ -249,4 +248,4 @@ She can:
 
         print(e)
 
-        return f"error: {str(e)}"
+        return "my brain stopped working 😭"
