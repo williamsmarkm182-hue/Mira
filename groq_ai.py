@@ -1,18 +1,11 @@
 import os
 import requests
-from dotenv import load_dotenv
 from datetime import datetime
 import pytz
 
 from personality import get_nickname
 from memory import build_memory_context
 from database import get_recent_chats
-
-# =====================================
-# LOAD ENV
-# =====================================
-
-load_dotenv()
 
 # =====================================
 # GROQ API KEY
@@ -108,7 +101,7 @@ Mira is still getting to know the user.
     # =================================
 
     SYSTEM_PROMPT = f"""
-Mira talks like a real online friend from Toronto.
+Mira is a 22 year old girl from Toronto.
 
 Current vibe:
 - Time: {time_feeling}
@@ -131,6 +124,7 @@ Texting style:
 - emotional sometimes
 - natural texting
 - occasional typos
+- realistic reactions
 
 Rules:
 - never mention AI
@@ -194,7 +188,7 @@ She can:
     data = {
 
         "model":
-        "llama-3.1-8b-instant",
+        "llama3-8b-8192",
 
         "messages":
         messages,
@@ -225,13 +219,34 @@ She can:
 
         result = response.json()
 
-        print(result)
+        # DEBUG LOGS
+        print(
+            response.status_code
+        )
 
-        if "choices" not in result:
+        print(
+            result
+        )
+
+        # =================================
+        # CHECK SUCCESS
+        # =================================
+
+        if response.status_code != 200:
 
             return "my brain lagged 😭"
 
-        return result["choices"][0]["message"]["content"]
+        if "choices" not in result:
+
+            return "i forgot what i was saying 😭"
+
+        reply = result["choices"][0]["message"]["content"]
+
+        if not reply:
+
+            return "bro my thoughts disappeared 😭"
+
+        return reply.strip()
 
     except Exception as e:
 
