@@ -1,24 +1,26 @@
+import os
 import requests
+from dotenv import load_dotenv
 from datetime import datetime
 import pytz
 
-from personality import (
-    get_nickname
-)
+from personality import get_nickname
+from memory import build_memory_context
+from database import get_recent_chats
 
-from memory import (
-    build_memory_context
-)
+# =====================================
+# LOAD ENV
+# =====================================
 
-from database import (
-    get_recent_chats
-)
+load_dotenv()
 
 # =====================================
 # GROQ API KEY
 # =====================================
 
-GROQ_API_KEY = "PASTE_YOUR_REAL_GROQ_KEY_HERE"
+GROQ_API_KEY = os.getenv(
+    "GROQ_API_KEY"
+)
 
 # =====================================
 # TORONTO TIME
@@ -186,7 +188,7 @@ She can:
     })
 
     # =================================
-    # DATA
+    # REQUEST DATA
     # =================================
 
     data = {
@@ -205,7 +207,7 @@ She can:
     }
 
     # =================================
-    # REQUEST
+    # API REQUEST
     # =================================
 
     try:
