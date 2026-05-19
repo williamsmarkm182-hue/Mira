@@ -1,12 +1,12 @@
 import os
 import random
+import time
 
 import telebot
 from dotenv import load_dotenv
 
 from database import (
     create_user,
-    get_user,
     save_chat,
     save_scheduled_message
 )
@@ -44,10 +44,18 @@ from utils import (
 
 load_dotenv()
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.getenv(
+    "8782101012:AAGYzaQWr7GYHA9gndaJguVymKuS9KeviUw"
+)
+
+if not BOT_TOKEN:
+
+    raise ValueError(
+        "BOT_TOKEN is missing"
+    )
 
 # =====================================
-# ADMIN + FORCE JOIN
+# SETTINGS
 # =====================================
 
 ADMIN_ID = 7939923484
@@ -58,7 +66,9 @@ REQUIRED_CHANNEL = "starkreport"
 # BOT
 # =====================================
 
-bot = telebot.TeleBot(BOT_TOKEN)
+bot = telebot.TeleBot(
+    BOT_TOKEN
+)
 
 # =====================================
 # START SCHEDULER
@@ -80,6 +90,7 @@ def joined_required_channel(user_id):
         )
 
         return member.status in [
+
             "member",
             "administrator",
             "creator"
@@ -98,7 +109,9 @@ def joined_required_channel(user_id):
 @bot.message_handler(commands=['start'])
 def start(message):
 
-    user_id = str(message.from_user.id)
+    user_id = str(
+        message.from_user.id
+    )
 
     create_user(user_id)
 
@@ -126,7 +139,9 @@ https://t.me/{REQUIRED_CHANNEL}
 
     bot.reply_to(
         message,
-        random.choice(welcome_messages)
+        random.choice(
+            welcome_messages
+        )
     )
 
 # =====================================
@@ -136,9 +151,13 @@ https://t.me/{REQUIRED_CHANNEL}
 @bot.message_handler(func=lambda m: True)
 def chat(message):
 
-    user_id = str(message.from_user.id)
+    user_id = str(
+        message.from_user.id
+    )
 
-    chat_id = str(message.chat.id)
+    chat_id = str(
+        message.chat.id
+    )
 
     create_user(user_id)
 
@@ -186,13 +205,15 @@ https://t.me/{REQUIRED_CHANNEL}
 
         bot.reply_to(
             message,
-            random.choice(photo_replies)
+            random.choice(
+                photo_replies
+            )
         )
 
         return
 
     # =================================
-    # SAVE USER CHAT
+    # SAVE CHAT
     # =================================
 
     save_chat(
@@ -233,11 +254,15 @@ https://t.me/{REQUIRED_CHANNEL}
         "you awake"
     ]
 
-    if any(q in text for q in time_questions):
+    if any(
+        q in text
+        for q in time_questions
+    ):
 
         now = get_toronto_time()
 
         hour = now.hour
+
         minute = now.minute
 
         ampm = "AM"
@@ -280,15 +305,32 @@ https://t.me/{REQUIRED_CHANNEL}
         try:
 
             mins_text = (
-                text.replace("text me in", "")
-                .replace("minutes", "")
-                .replace("minute", "")
-                .replace("mins", "")
-                .replace("min", "")
+                text.replace(
+                    "text me in",
+                    ""
+                )
+                .replace(
+                    "minutes",
+                    ""
+                )
+                .replace(
+                    "minute",
+                    ""
+                )
+                .replace(
+                    "mins",
+                    ""
+                )
+                .replace(
+                    "min",
+                    ""
+                )
                 .strip()
             )
 
-            mins = int(mins_text)
+            mins = int(
+                mins_text
+            )
 
             future_message = random.choice([
 
@@ -300,13 +342,14 @@ https://t.me/{REQUIRED_CHANNEL}
                 "bro answer me 😭"
             ])
 
-            import time
-
-            send_time = int(time.time()) + (
+            send_time = int(
+                time.time()
+            ) + (
                 mins * 60
             )
 
             save_scheduled_message(
+
                 user_id,
                 chat_id,
                 future_message,
@@ -332,10 +375,12 @@ https://t.me/{REQUIRED_CHANNEL}
             return
 
     # =================================
-    # MOOD
+    # GET MOOD
     # =================================
 
-    mood = get_stable_mood(user_id)
+    mood = get_stable_mood(
+        user_id
+    )
 
     # =================================
     # TYPING ACTION
@@ -355,21 +400,25 @@ https://t.me/{REQUIRED_CHANNEL}
     try:
 
         reply = ask_groq(
+
             user_id,
             text,
             mood,
             relationship_level
         )
 
-        reply = human_typo(reply)
+        reply = human_typo(
+            reply
+        )
 
         # =============================
-        # RANDOM VOICE NOTES
+        # RANDOM VOICE NOTE
         # =============================
 
         if random.randint(1, 100) <= 10:
 
             send_voice_reply(
+
                 bot,
                 chat_id,
                 reply
@@ -387,6 +436,7 @@ https://t.me/{REQUIRED_CHANNEL}
         # =============================
 
         save_chat(
+
             user_id,
             "assistant",
             reply
@@ -405,7 +455,9 @@ https://t.me/{REQUIRED_CHANNEL}
 # BOT ONLINE
 # =====================================
 
-print("Mira is online...")
+print(
+    "Mira is online..."
+)
 
 # =====================================
 # RUN BOT
