@@ -1,9 +1,7 @@
 import os
 import random
 import time
-
 import telebot
-from dotenv import load_dotenv
 
 from database import (
     create_user,
@@ -39,20 +37,10 @@ from utils import (
 )
 
 # =====================================
-# LOAD ENV
+# BOT TOKEN
 # =====================================
 
-load_dotenv()
-
-BOT_TOKEN = os.getenv(
-    "8782101012:AAGYzaQWr7GYHA9gndaJguVymKuS9KeviUw"
-)
-
-if not BOT_TOKEN:
-
-    raise ValueError(
-        "BOT_TOKEN is missing"
-    )
+BOT_TOKEN = "8782101012:AAGYzaQWr7GYHA9gndaJguVymKuS9KeviUw"
 
 # =====================================
 # SETTINGS
