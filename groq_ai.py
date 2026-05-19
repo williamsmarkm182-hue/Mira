@@ -4,11 +4,5 @@ from dotenv import load_dotenv
 load_dotenv()
 
 GROQ_API_KEY = os.getenv(
-    "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"
+    "GROQ_API_KEY"
 )
-
-if not GROQ_API_KEY:
-
-    raise ValueError(
-        "GROQ_API_KEY is missing"
-    )
