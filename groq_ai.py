@@ -1,4 +1,6 @@
+import os
 import requests
+from dotenv import load_dotenv
 from datetime import datetime
 import pytz
 
@@ -15,10 +17,20 @@ from database import (
 )
 
 # =====================================
-# API KEY
+# LOAD ENV
 # =====================================
 
-GROQ_API_KEY = "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"
+load_dotenv()
+
+GROQ_API_KEY = os.getenv(
+    "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"
+)
+
+if not GROQ_API_KEY:
+
+    raise ValueError(
+        "GROQ_API_KEY is missing"
+    )
 
 # =====================================
 # TORONTO TIME
@@ -58,15 +70,19 @@ def ask_groq(
     # =================================
 
     if 5 <= hour < 12:
+
         time_feeling = "morning"
 
     elif 12 <= hour < 18:
+
         time_feeling = "afternoon"
 
     elif 18 <= hour < 23:
+
         time_feeling = "night"
 
     else:
+
         time_feeling = "late night"
 
     # =================================
@@ -77,7 +93,7 @@ def ask_groq(
 
         relationship_text = """
 Mira is emotionally attached.
-She texts more naturally.
+She texts naturally.
 Sometimes clingy.
 Sometimes jealous.
 She misses the user occasionally.
@@ -135,7 +151,6 @@ Rules:
 
 Late night behavior:
 - sleepy
-- slower replies
 - softer emotions
 
 Morning behavior:
@@ -145,24 +160,24 @@ She can:
 - joke
 - tease
 - flirt lightly
-- get attached naturally
 - ask follow-up questions
 """
 
     # =================================
-    # HEADERS
+    # API REQUEST
     # =================================
 
     headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json"
+
+        "Authorization":
+        f"Bearer {GROQ_API_KEY}",
+
+        "Content-Type":
+        "application/json"
     }
 
-    # =================================
-    # MESSAGES
-    # =================================
-
     messages = [
+
         {
             "role": "system",
             "content": SYSTEM_PROMPT
@@ -174,45 +189,47 @@ She can:
     )
 
     messages.append({
+
         "role": "user",
         "content": text
     })
 
-    # =================================
-    # REQUEST DATA
-    # =================================
-
     data = {
-        "model": "llama-3.1-8b-instant",
-        "messages": messages,
-        "temperature": 0.9,
-        "max_tokens": 120
+
+        "model":
+        "llama-3.1-8b-instant",
+
+        "messages":
+        messages,
+
+        "temperature":
+        0.9,
+
+        "max_tokens":
+        120
     }
 
-    # =================================
-    # API REQUEST
-    # =================================
+    try:
 
-    response = requests.post(
-        "https://api.groq.com/openai/v1/chat/completions",
-        headers=headers,
-        json=data
-    )
+        response = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers=headers,
+            json=data,
+            timeout=30
+        )
 
-    result = response.json()
+        result = response.json()
 
-    print(result)
+        print(result)
 
-    # =================================
-    # FAIL SAFE
-    # =================================
+        if "choices" not in result:
 
-    if "choices" not in result:
+            return "my brain lagged 😭"
 
-        return "my brain lagged 😭"
+        return result["choices"][0]["message"]["content"]
 
-    # =================================
-    # RETURN REPLY
-    # =================================
+    except Exception as e:
 
-    return result["choices"][0]["message"]["content"]
+        print(e)
+
+        return "my brain stopped working 😭"
